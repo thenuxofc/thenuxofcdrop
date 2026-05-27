@@ -1,0 +1,282 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+.term-wrap {
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: 'Courier New', Courier, monospace;
+  border: 1.5px solid #1a1a1a;
+}
+.term-bar {
+  background: #111;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.d1 { background: #ff5f57; }
+.d2 { background: #febc2e; }
+.d3 { background: #28c840; }
+.term-title { color: #555; font-size: 12px; margin-left: auto; margin-right: auto; letter-spacing: 1px; }
+.term-body {
+  padding: 18px 20px 24px;
+  min-height: 520px;
+  background: #000;
+  position: relative;
+}
+.line { 
+  color: #00ff41;
+  font-size: 13.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  text-shadow: 0 0 6px #00ff4160;
+}
+.line.dim { color: #00aa2a; text-shadow: none; }
+.line.bright { color: #39ff14; text-shadow: 0 0 8px #39ff1480; }
+.line.cyan { color: #00ffff; text-shadow: 0 0 6px #00ffff50; }
+.line.yellow { color: #ffff00; text-shadow: 0 0 6px #ffff0040; }
+.line.red { color: #ff4444; text-shadow: 0 0 6px #ff444440; }
+.line.white { color: #cccccc; text-shadow: none; }
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: #00ff41;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+  margin-left: 1px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.scanline {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  border-radius: 10px;
+}
+.btn-row { display: flex; gap: 8px; padding: 12px 20px; background: #050505; border-top: 1px solid #111; flex-wrap: wrap; }
+.tbtn {
+  background: #001a00;
+  color: #00ff41;
+  border: 1px solid #00ff4140;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tbtn:hover { background: #003300; border-color: #00ff41; }
+.tbtn:active { transform: scale(0.97); }
+</style>
+
+<div class="term-wrap">
+  <div class="term-bar">
+    <div class="dot d1"></div>
+    <div class="dot d2"></div>
+    <div class="dot d3"></div>
+    <span class="term-title">thenux@dev — bash — 80x24</span>
+  </div>
+  <div class="term-body" id="tb">
+    <div class="scanline"></div>
+    <div id="out"></div>
+    <span class="cursor" id="cur"></span>
+  </div>
+  <div class="btn-row">
+    <button class="tbtn" onclick="runScript('whoami')">whoami</button>
+    <button class="tbtn" onclick="runScript('skills')">skills</button>
+    <button class="tbtn" onclick="runScript('stack')">tech stack</button>
+    <button class="tbtn" onclick="runScript('git')">git log</button>
+    <button class="tbtn" onclick="runScript('status')">status</button>
+    <button class="tbtn" onclick="runScript('nmap')">nmap scan</button>
+    <button class="tbtn" onclick="clearTerm()">clear</button>
+  </div>
+</div>
+
+<script>
+const out = document.getElementById('out');
+const cur = document.getElementById('cur');
+let typing = false;
+let queue = [];
+
+const scripts = {
+  whoami: [
+    { t: 'prompt', text: 'whoami' },
+    { t: 'gap' },
+    { t: 'bright', text: '  ████████╗██╗  ██╗███████╗███╗   ██╗██╗   ██╗██╗  ██╗' },
+    { t: 'bright', text: '  ╚══██╔══╝██║  ██║██╔════╝████╗  ██║██║   ██║╚██╗██╔╝' },
+    { t: 'bright', text: '     ██║   ███████║█████╗  ██╔██╗ ██║██║   ██║ ╚███╔╝ ' },
+    { t: 'bright', text: '     ██║   ██╔══██║██╔══╝  ██║╚██╗██║██║   ██║ ██╔██╗ ' },
+    { t: 'bright', text: '     ██║   ██║  ██║███████╗██║ ╚████║╚██████╔╝██╔╝ ██╗' },
+    { t: 'bright', text: '     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝' },
+    { t: 'gap' },
+    { t: 'cyan',   text: '  Name     :  THENUX' },
+    { t: 'line',   text: '  Country  :  Sri Lanka LK' },
+    { t: 'line',   text: '  Role     :  Full-Stack Dev & AI Builder' },
+    { t: 'line',   text: '  Focus    :  LLMs · APIs · Open Source' },
+    { t: 'line',   text: '  Motto    :  "Build something people will remember"' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+  skills: [
+    { t: 'prompt', text: 'cat skills.matrix' },
+    { t: 'gap' },
+    { t: 'cyan',   text: '  [ SKILL MATRIX SCAN ] ——————————————————————' },
+    { t: 'gap' },
+    { t: 'line',   text: '  JavaScript   [██████████████████████████████] 98%' },
+    { t: 'line',   text: '  TypeScript   [████████████████████████░░░░░░] 88%' },
+    { t: 'line',   text: '  React/Next   [█████████████████████████████░] 95%' },
+    { t: 'line',   text: '  Node.js      [██████████████████████████████] 97%' },
+    { t: 'line',   text: '  Python       [██████████████████████░░░░░░░░] 80%' },
+    { t: 'line',   text: '  MongoDB      [████████████████████████░░░░░░] 85%' },
+    { t: 'line',   text: '  AI / LLMs    [█████████████████████░░░░░░░░░] 78%' },
+    { t: 'line',   text: '  Security     [███████████████████████░░░░░░░] 82%' },
+    { t: 'line',   text: '  System Design[██████████████████████████░░░░] 88%' },
+    { t: 'gap' },
+    { t: 'bright', text: '  > All systems nominal. Ready to ship. [OK]' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+  stack: [
+    { t: 'prompt', text: 'cat tech-stack.json' },
+    { t: 'gap' },
+    { t: 'cyan',   text: '  {' },
+    { t: 'line',   text: '    "languages"  : ["JS","TS","Python","Java","C#","C++","PHP"],' },
+    { t: 'line',   text: '    "frontend"   : ["React","Next.js","React Native","Tailwind","Vite"],' },
+    { t: 'line',   text: '    "backend"    : ["Node.js","Express","REST","GraphQL","WebSockets"],' },
+    { t: 'line',   text: '    "databases"  : ["MongoDB","MySQL","Firebase","Supabase","Redis"],' },
+    { t: 'line',   text: '    "cloud"      : ["Vercel","GCP","Cloudflare","Heroku","Render"],' },
+    { t: 'line',   text: '    "ai"         : ["OpenAI","Claude","LangChain","HuggingFace","Ollama"],' },
+    { t: 'line',   text: '    "devops"     : ["GitHub Actions","Docker","Nginx","Playwright"],' },
+    { t: 'line',   text: '    "design"     : ["Figma","Framer","Blender","Canva"]' },
+    { t: 'cyan',   text: '  }' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+  git: [
+    { t: 'prompt', text: 'git log --oneline --graph --all' },
+    { t: 'gap' },
+    { t: 'bright', text: '  * a3f9c12  (HEAD -> main)  shipped: next-gen AI assistant v2.0' },
+    { t: 'line',   text: '  * b71de08  feat: public REST API with rate limiting + docs' },
+    { t: 'line',   text: '  * c90fa33  fix: hardened auth verification layer (JWT+OAuth)' },
+    { t: 'line',   text: '  * d4e21b1  build: LLM-powered chatbot engine with RAG pipeline' },
+    { t: 'line',   text: '  * e82ca55  deploy: full-stack SaaS app → production (Vercel)' },
+    { t: 'line',   text: '  * f19ab44  feat: multi-tenant webhook system with retry logic' },
+    { t: 'line',   text: '  * 007de21  refactor: migrated monolith → microservices arch' },
+    { t: 'line',   text: '  * 88cc310  chore: open-sourced SDK with 200+ stars on release' },
+    { t: 'line',   text: '  * 3fa9901  build: discord bot serving 50k+ users (still live)' },
+    { t: 'line',   text: '  * 12e0032  init: started from zero, still going strong' },
+    { t: 'gap' },
+    { t: 'dim',    text: '  [showing latest 10 commits of ∞ total]' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+  status: [
+    { t: 'prompt', text: 'systemctl status thenux.service' },
+    { t: 'gap' },
+    { t: 'bright', text: '  thenux.service — THENUX Developer Instance' },
+    { t: 'dim',    text: '     Loaded: active (running)' },
+    { t: 'gap' },
+    { t: 'bright', text: '  SERVICE STATUS BOARD' },
+    { t: 'cyan',   text: '  ─────────────────────────────────────────' },
+    { t: 'line',   text: '  [ACTIVE]   Building next-gen AI products' },
+    { t: 'line',   text: '  [ACTIVE]   Learning LLM fine-tuning & agents' },
+    { t: 'line',   text: '  [ACTIVE]   Open to collabs & freelance' },
+    { t: 'line',   text: '  [ACTIVE]   Writing open-source tools' },
+    { t: 'yellow', text: '  [BUSY]     Shipping features (will reply in ~24h)' },
+    { t: 'red',    text: '  [CRITICAL] Coffee supply — NEEDS REFILL' },
+    { t: 'cyan',   text: '  ─────────────────────────────────────────' },
+    { t: 'gap' },
+    { t: 'bright', text: '  ONLINE   Uptime: still going  Location: LK (GMT+5:30)' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+  nmap: [
+    { t: 'prompt', text: 'nmap --vibe-check thenux.dev' },
+    { t: 'gap' },
+    { t: 'dim',    text: '  Starting Nmap scan on thenux.dev ...' },
+    { t: 'dim',    text: '  Nmap scan report for thenux.dev (127.0.0.1)' },
+    { t: 'dim',    text: '  Host is up (0.0012s latency).' },
+    { t: 'gap' },
+    { t: 'cyan',   text: '  PORT       STATE   SERVICE     VERSION' },
+    { t: 'cyan',   text: '  ─────────────────────────────────────────' },
+    { t: 'bright', text: '  3000/tcp   open    node.js     Express 4.x' },
+    { t: 'bright', text: '  5173/tcp   open    vite-hmr    React 18 (HMR)' },
+    { t: 'bright', text: '  27017/tcp  open    mongodb     Atlas Cloud' },
+    { t: 'bright', text: '  443/tcp    open    https       Next.js App' },
+    { t: 'bright', text: '  8080/tcp   open    api-server  REST v2 + GraphQL' },
+    { t: 'bright', text: '  6379/tcp   open    redis       Cache layer' },
+    { t: 'gap' },
+    { t: 'line',   text: '  Security rating  : HARDENED [OK]' },
+    { t: 'line',   text: '  Vulnerabilities  : 0 found' },
+    { t: 'line',   text: '  Vibe check       : PASSED — immaculate' },
+    { t: 'gap' },
+    { t: 'prompt', text: '' },
+  ],
+};
+
+function clearTerm() {
+  typing = false;
+  queue = [];
+  out.innerHTML = '';
+}
+
+function addLine(cls, text) {
+  const d = document.createElement('div');
+  d.className = 'line ' + (cls === 'line' ? '' : cls);
+  d.textContent = text;
+  out.appendChild(d);
+  out.parentElement.scrollTop = out.parentElement.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typePrompt(text) {
+  const d = document.createElement('div');
+  d.className = 'line bright';
+  out.appendChild(d);
+  const prefix = 'thenux@dev:~$ ';
+  const full = prefix + text;
+  for (let i = 0; i < full.length; i++) {
+    d.textContent = full.slice(0, i + 1);
+    await sleep(text === '' ? 0 : 40 + Math.random() * 30);
+    out.parentElement.scrollTop = out.parentElement.scrollHeight;
+  }
+}
+
+async function runScript(name) {
+  if (typing) return;
+  typing = true;
+  cur.style.display = 'none';
+  const steps = scripts[name];
+  for (const step of steps) {
+    if (!typing) break;
+    if (step.t === 'prompt') {
+      await typePrompt(step.text);
+      await sleep(120);
+    } else if (step.t === 'gap') {
+      addLine('line', '');
+      await sleep(60);
+    } else {
+      addLine(step.t, step.text);
+      await sleep(28 + Math.random() * 18);
+    }
+  }
+  cur.style.display = 'inline-block';
+  typing = false;
+}
+
+runScript('whoami');
+</script>
