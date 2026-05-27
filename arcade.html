@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>THENUX — Arcade</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#00ff41;--dg:#00aa2a;--ddg:#003300;--bg:#000;--bg2:#050505;--bg3:#0a0a0a}
+body{background:var(--bg);color:var(--g);font-family:'Courier New',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,65,0.015) 3px,rgba(0,255,65,0.015) 4px);pointer-events:none;z-index:9999}
+
+/* NAV */
+.nav{display:flex;align-items:center;gap:0;border-bottom:1px solid #00ff4130;background:#000;flex-wrap:wrap}
+.nav-logo{padding:14px 20px;font-size:18px;font-weight:bold;color:var(--g);text-shadow:0 0 12px #00ff41;letter-spacing:3px;border-right:1px solid #00ff4130}
+.nav-tab{padding:14px 18px;cursor:pointer;color:#00aa2a;font-size:13px;letter-spacing:1px;border:none;background:none;border-right:1px solid #00ff4115;transition:all .2s;font-family:'Courier New',monospace}
+.nav-tab:hover,.nav-tab.active{color:var(--g);background:#001a00;text-shadow:0 0 8px #00ff41}
+.nav-tab.active{border-bottom:2px solid var(--g)}
+
+/* PANELS */
+.panel{display:none;padding:24px;animation:fadeIn .3s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* TERMINAL SHARED */
+.term{background:#000;border:1px solid #00ff4140;border-radius:8px;overflow:hidden;font-family:'Courier New',monospace}
+.term-bar{background:#0a0a0a;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #00ff4120}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.term-title{color:#444;font-size:12px;margin:0 auto;letter-spacing:1px}
+.term-body{padding:16px 18px;min-height:460px;position:relative}
+.tline{color:var(--g);font-size:13px;line-height:1.75;white-space:pre-wrap;text-shadow:0 0 5px #00ff4150}
+.tline.dim{color:#00882a;text-shadow:none}
+.tline.bright{color:#39ff14;text-shadow:0 0 8px #39ff1470}
+.tline.cyan{color:#00ffff;text-shadow:0 0 6px #00ffff50}
+.tline.yellow{color:#ffff00;text-shadow:0 0 4px #ffff0040}
+.tline.red{color:#ff4444;text-shadow:0 0 4px #ff444440}
+.cursor{display:inline-block;width:8px;height:14px;background:var(--g);vertical-align:middle;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.btn-row{display:flex;gap:8px;padding:10px 18px;background:#050505;border-top:1px solid #0f0f0f;flex-wrap:wrap}
+.tbtn{background:#001200;color:var(--g);border:1px solid #00ff4130;border-radius:5px;padding:6px 14px;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;letter-spacing:.5px;transition:all .15s}
+.tbtn:hover{background:#003300;border-color:var(--g);text-shadow:0 0 6px var(--g)}
+.tbtn:active{transform:scale(.97)}
+
+/* SECTION HEADERS */
+.sec{margin-bottom:20px}
+.sec h2{color:var(--g);font-size:16px;letter-spacing:2px;margin-bottom:6px;text-shadow:0 0 8px #00ff4160}
+.sec p{color:#00882a;font-size:13px}
+
+/* GAME CONTAINER */
+.game-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:640px){.game-wrap{grid-template-columns:1fr}}
+
+.game-card{background:#050505;border:1px solid #00ff4125;border-radius:10px;overflow:hidden;transition:border-color .2s}
+.game-card:hover{border-color:#00ff4160}
+.game-header{background:#000;padding:12px 16px;border-bottom:1px solid #00ff4115;display:flex;align-items:center;gap:10px}
+.game-icon{font-size:22px}
+.game-title{color:var(--g);font-size:14px;font-weight:bold;letter-spacing:1px}
+.game-subtitle{color:#006620;font-size:11px;margin-top:1px}
+.game-body{padding:16px}
+
+/* SNAKE */
+#snake-canvas{display:block;background:#000;border:1px solid #00ff4130;border-radius:4px;image-rendering:pixelated;cursor:pointer;max-width:100%}
+.score-row{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#00882a}
+.score-val{color:var(--g);font-size:14px;font-weight:bold}
+.game-btn{background:#001a00;color:var(--g);border:1px solid #00ff4140;border-radius:5px;padding:7px 18px;font-family:'Courier New',monospace;font-size:12px;cursor:pointer;letter-spacing:1px;margin-top:8px;width:100%;transition:all .2s}
+.game-btn:hover{background:#003300;border-color:var(--g)}
+
+/* RPS */
+.rps-arena{display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0}
+.rps-choices{display:flex;gap:10px;justify-content:center}
+.rps-btn{font-size:28px;background:#001a00;border:1px solid #00ff4130;border-radius:8px;padding:12px 16px;cursor:pointer;transition:all .2s;width:70px;height:70px;display:flex;align-items:center;justify-content:center}
+.rps-btn:hover{background:#003300;border-color:var(--g);transform:scale(1.08)}
+.rps-btn:active{transform:scale(.96)}
+.rps-vs{display:flex;align-items:center;gap:20px;font-size:13px;color:#00882a}
+.rps-pick{font-size:40px;min-width:50px;text-align:center}
+.rps-result{font-size:14px;font-weight:bold;min-height:20px;letter-spacing:1px}
+.rps-result.win{color:#39ff14;text-shadow:0 0 8px #39ff1470}
+.rps-result.lose{color:#ff4444}
+.rps-result.draw{color:#ffff00}
+.rps-score{display:flex;gap:20px;font-size:12px;color:#006620}
+.rps-score span{color:var(--g)}
+
+/* MEMORY */
+.mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}
+.mem-card{aspect-ratio:1;background:#001a00;border:1px solid #00ff4125;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;transition:all .2s;user-select:none}
+.mem-card:hover:not(.flipped):not(.matched){background:#002a00;border-color:#00ff4160}
+.mem-card.flipped,.mem-card.matched{background:#003300;border-color:var(--g)}
+.mem-card.matched{border-color:#39ff14;background:#004400;cursor:default}
+.mem-card .front{display:none}
+.mem-card .back{color:#00ff4160;font-size:16px}
+.mem-card.flipped .front,.mem-card.matched .front{display:flex}
+.mem-card.flipped .back,.mem-card.matched .back{display:none}
+.mem-status{font-size:12px;color:#006620;margin-top:6px}
+.mem-status span{color:var(--g)}
+
+/* REFLEX */
+.reflex-box{display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0}
+.reflex-target{width:120px;height:120px;border-radius:10px;background:#001a00;border:2px solid #00ff4130;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .1s;letter-spacing:1px;text-align:center;user-select:none;color:#00882a}
+.reflex-target.waiting{background:#001a00;border-color:#00ff4130;color:#00882a;cursor:default}
+.reflex-target.ready{background:#003300;border-color:var(--g);color:var(--g);cursor:pointer;box-shadow:0 0 20px #00ff4130;animation:pulse 0.5s infinite alternate}
+.reflex-target.early{background:#1a0000;border-color:#ff4444;color:#ff4444;cursor:default}
+@keyframes pulse{from{box-shadow:0 0 10px #00ff4130}to{box-shadow:0 0 25px #00ff4170}}
+.reflex-times{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.reflex-time{background:#001200;border:1px solid #00ff4120;border-radius:4px;padding:3px 10px;font-size:12px;color:#00882a}
+.reflex-time span{color:var(--g)}
+
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;padding:16px;background:#050505;border:1px solid #00ff4115;border-radius:8px}
+.stat-box{text-align:center}
+.stat-label{font-size:10px;color:#006620;letter-spacing:1px;text-transform:uppercase}
+.stat-val{font-size:20px;color:var(--g);font-weight:bold;text-shadow:0 0 8px #00ff4160;margin-top:2px}
+
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid #00ff4110;font-size:13px}
+.lb-rank{color:#006620;width:24px;text-align:right}
+.lb-rank.top{color:#ffff00}
+.lb-name{flex:1;color:var(--g)}
+.lb-score{color:#39ff14;font-weight:bold}
+
+/* ABOUT PANEL */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+@media(max-width:500px){.about-grid{grid-template-columns:1fr}}
+.info-box{background:#050505;border:1px solid #00ff4120;border-radius:8px;padding:14px 16px}
+.info-box h3{color:var(--g);font-size:13px;letter-spacing:1px;margin-bottom:8px}
+.info-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #00ff4108}
+.info-row:last-child{border:none}
+.info-key{color:#006620}
+.info-val{color:var(--g)}
+
+.skills-bar{margin:6px 0}
+.sk-label{display:flex;justify-content:space-between;font-size:11px;color:#00882a;margin-bottom:3px}
+.sk-label span{color:var(--g)}
+.sk-track{background:#001a00;border-radius:2px;height:6px;overflow:hidden}
+.sk-fill{height:100%;background:var(--g);border-radius:2px;box-shadow:0 0 6px #00ff4150}
+
+.connect-btn{display:inline-flex;align-items:center;gap:8px;background:#001a00;border:1px solid #00ff4130;border-radius:6px;padding:10px 16px;color:var(--g);font-family:'Courier New',monospace;font-size:13px;text-decoration:none;margin:4px;transition:all .2s;cursor:pointer}
+.connect-btn:hover{background:#003300;border-color:var(--g);text-shadow:0 0 6px var(--g)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">◈ THENUX</div>
+  <button class="nav-tab active" onclick="show('terminal')">💻 Terminal</button>
+  <button class="nav-tab" onclick="show('arcade')">🎮 Arcade</button>
+  <button class="nav-tab" onclick="show('about')">👤 About</button>
+</nav>
+
+<!-- ═══════════════ TERMINAL PANEL ═══════════════ -->
+<div id="panel-terminal" class="panel active">
+  <div class="term">
+    <div class="term-bar">
+      <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+      <span class="term-title">thenux@dev — bash — 80x24</span>
+    </div>
+    <div class="term-body" id="tb">
+      <div id="out"></div>
+      <span class="cursor" id="cur"></span>
+    </div>
+    <div class="btn-row">
+      <button class="tbtn" onclick="runScript('whoami')">whoami</button>
+      <button class="tbtn" onclick="runScript('skills')">skills</button>
+      <button class="tbtn" onclick="runScript('stack')">tech stack</button>
+      <button class="tbtn" onclick="runScript('git')">git log</button>
+      <button class="tbtn" onclick="runScript('status')">status</button>
+      <button class="tbtn" onclick="runScript('nmap')">nmap scan</button>
+      <button class="tbtn" onclick="runScript('projects')">projects</button>
+      <button class="tbtn" onclick="runScript('contact')">contact</button>
+      <button class="tbtn" onclick="clearTerm()">clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ARCADE PANEL ═══════════════ -->
+<div id="panel-arcade" class="panel">
+
+  <div class="stats-bar">
+    <div class="stat-box"><div class="stat-label">Snake Best</div><div class="stat-val" id="sb-snake">0</div></div>
+    <div class="stat-box"><div class="stat-label">RPS Wins</div><div class="stat-val" id="sb-rps">0</div></div>
+    <div class="stat-box"><div class="stat-label">Memory Best</div><div class="stat-val" id="sb-mem">—</div></div>
+    <div class="stat-box"><div class="stat-label">Reflex Best</div><div class="stat-val" id="sb-reflex">—</div></div>
+  </div>
+
+  <div class="game-wrap">
+
+    <!-- SNAKE -->
+    <div class="game-card">
+      <div class="game-header">
+        <div class="game-icon">🐍</div>
+        <div><div class="game-title">SNAKE</div><div class="game-subtitle">WASD or Arrow Keys</div></div>
+      </div>
+      <div class="game-body">
+        <canvas id="snake-canvas" width="260" height="260"></canvas>
+        <div class="score-row">
+          <div>Score <span class="score-val" id="snake-score">0</span></div>
+          <div>Best <span class="score-val" id="snake-best">0</span></div>
+          <div>Level <span class="score-val" id="snake-level">1</span></div>
+        </div>
+        <button class="game-btn" id="snake-btn" onclick="snakeStart()">▶ START GAME</button>
+      </div>
+    </div>
+
+    <!-- RPS -->
+    <div class="game-card">
+      <div class="game-header">
+        <div class="game-icon">✊</div>
+        <div><div class="game-title">ROCK PAPER SCISSORS</div><div class="game-subtitle">Best of ∞</div></div>
+      </div>
+      <div class="game-body">
+        <div class="rps-arena">
+          <div class="rps-score">
+            W:<span id="rps-w">0</span> &nbsp; L:<span id="rps-l">0</span> &nbsp; D:<span id="rps-d">0</span>
+          </div>
+          <div class="rps-vs">
+            <div style="text-align:center"><div style="font-size:11px;color:#006620;margin-bottom:4px">YOU</div><div class="rps-pick" id="rps-you">❓</div></div>
+            <div style="color:#003300;font-size:20px">VS</div>
+            <div style="text-align:center"><div style="font-size:11px;color:#006620;margin-bottom:4px">CPU</div><div class="rps-pick" id="rps-cpu">❓</div></div>
+          </div>
+          <div class="rps-result" id="rps-result">Choose your weapon</div>
+          <div class="rps-choices">
+            <button class="rps-btn" onclick="rpsPlay('rock')" title="Rock">✊</button>
+            <button class="rps-btn" onclick="rpsPlay('paper')" title="Paper">🖐</button>
+            <button class="rps-btn" onclick="rpsPlay('scissors')" title="Scissors">✌️</button>
+          </div>
+          <button class="game-btn" style="margin-top:4px" onclick="rpsReset()">↺ RESET SCORE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMORY -->
+    <div class="game-card">
+      <div class="game-header">
+        <div class="game-icon">🧠</div>
+        <div><div class="game-title">MEMORY CARDS</div><div class="game-subtitle">Match all pairs</div></div>
+      </div>
+      <div class="game-body">
+        <div class="mem-grid" id="mem-grid"></div>
+        <div class="score-row">
+          <div>Moves <span class="score-val" id="mem-moves">0</span></div>
+          <div>Pairs <span class="score-val" id="mem-pairs">0</span>/8</div>
+          <div>Time <span class="score-val" id="mem-time">0s</span></div>
+        </div>
+        <div class="mem-status" id="mem-status">Click any card to start!</div>
+        <button class="game-btn" onclick="memInit()">↺ NEW GAME</button>
+      </div>
+    </div>
+
+    <!-- REFLEX -->
+    <div class="game-card">
+      <div class="game-header">
+        <div class="game-icon">⚡</div>
+        <div><div class="game-title">REFLEX TEST</div><div class="game-subtitle">Click when GREEN</div></div>
+      </div>
+      <div class="game-body">
+        <div class="reflex-box">
+          <div class="reflex-target waiting" id="reflex-target" onclick="reflexClick()">
+            CLICK START
+          </div>
+          <div style="font-size:12px;color:#006620">Last: <span id="reflex-last" style="color:var(--g)">—</span> &nbsp; Best: <span id="reflex-best-disp" style="color:#39ff14">—</span></div>
+          <div class="reflex-times" id="reflex-history"></div>
+          <button class="game-btn" onclick="reflexReset()">↺ CLEAR HISTORY</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end game-wrap -->
+</div><!-- end arcade panel -->
+
+<!-- ═══════════════ ABOUT PANEL ═══════════════ -->
+<div id="panel-about" class="panel">
+  <div class="about-grid">
+    <div class="info-box">
+      <h3>◈ PROFILE</h3>
+      <div class="info-row"><span class="info-key">Name</span><span class="info-val">THENUX</span></div>
+      <div class="info-row"><span class="info-key">Country</span><span class="info-val">Sri Lanka 🇱🇰</span></div>
+      <div class="info-row"><span class="info-key">Timezone</span><span class="info-val">GMT+5:30</span></div>
+      <div class="info-row"><span class="info-key">Role</span><span class="info-val">Full-Stack + AI</span></div>
+      <div class="info-row"><span class="info-key">Status</span><span class="info-val">🟢 ONLINE</span></div>
+      <div class="info-row"><span class="info-key">Open To</span><span class="info-val">Collabs & Freelance</span></div>
+    </div>
+    <div class="info-box">
+      <h3>◈ SKILLS</h3>
+      <div class="skills-bar"><div class="sk-label">JavaScript <span>98%</span></div><div class="sk-track"><div class="sk-fill" style="width:98%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">React / Next.js <span>95%</span></div><div class="sk-track"><div class="sk-fill" style="width:95%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">Node.js <span>97%</span></div><div class="sk-track"><div class="sk-fill" style="width:97%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">TypeScript <span>88%</span></div><div class="sk-track"><div class="sk-fill" style="width:88%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">Python <span>80%</span></div><div class="sk-track"><div class="sk-fill" style="width:80%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">AI / LLMs <span>78%</span></div><div class="sk-track"><div class="sk-fill" style="width:78%"></div></div></div>
+      <div class="skills-bar"><div class="sk-label">Security <span>82%</span></div><div class="sk-track"><div class="sk-fill" style="width:82%"></div></div></div>
+    </div>
+    <div class="info-box" style="grid-column:1/-1">
+      <h3>◈ CONNECT</h3>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+        <a class="connect-btn" href="https://github.com/thenuxofc" target="_blank">⌥ GitHub</a>
+        <a class="connect-btn" href="https://instagram.com/thenux_ofc" target="_blank">◎ Instagram</a>
+        <a class="connect-btn" href="mailto:sup@thenuxofc.store">✉ Email</a>
+        <a class="connect-btn" href="https://thenuxdrop.netlify.app/">◈ This Site</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════ NAV ═══════
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ═══════ TERMINAL ═══════
+const out=document.getElementById('out');
+const cur=document.getElementById('cur');
+let typing=false;
+const scripts={
+  whoami:[
+    {t:'prompt',text:'whoami'},
+    {t:'gap'},
+    {t:'bright',text:'  ████████╗██╗  ██╗███████╗███╗   ██╗██╗   ██╗██╗  ██╗'},
+    {t:'bright',text:'  ╚══██╔══╝██║  ██║██╔════╝████╗  ██║██║   ██║╚██╗██╔╝'},
+    {t:'bright',text:'     ██║   ███████║█████╗  ██╔██╗ ██║██║   ██║ ╚███╔╝ '},
+    {t:'bright',text:'     ██║   ██╔══██║██╔══╝  ██║╚██╗██║██║   ██║ ██╔██╗ '},
+    {t:'bright',text:'     ██║   ██║  ██║███████╗██║ ╚████║╚██████╔╝██╔╝ ██╗'},
+    {t:'bright',text:'     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝'},
+    {t:'gap'},
+    {t:'cyan',  text:'  Name      :  THENUX'},
+    {t:'line',  text:'  Country   :  Sri Lanka 🇱🇰  [GMT+5:30]'},
+    {t:'line',  text:'  Role      :  Full-Stack Dev & AI Builder'},
+    {t:'line',  text:'  Focus     :  LLMs · APIs · Open Source'},
+    {t:'line',  text:'  Coffee    :  ☕ → 💡 → 🔌 → 🚀 → repeat'},
+    {t:'line',  text:'  Motto     :  "Build something people will remember ✨"'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  skills:[
+    {t:'prompt',text:'cat skills.matrix'},
+    {t:'gap'},
+    {t:'cyan',  text:'  [ SKILL SCAN ] ────────────────────────────'},
+    {t:'gap'},
+    {t:'bright',text:'  JavaScript   [██████████████████████████████] 98%  MASTERED'},
+    {t:'line',  text:'  TypeScript   [████████████████████████░░░░░░] 88%  ADVANCED'},
+    {t:'bright',text:'  React/Next   [█████████████████████████████░] 95%  MASTERED'},
+    {t:'bright',text:'  Node.js      [██████████████████████████████] 97%  MASTERED'},
+    {t:'line',  text:'  Python       [██████████████████████░░░░░░░░] 80%  ADVANCED'},
+    {t:'line',  text:'  MongoDB      [████████████████████████░░░░░░] 85%  ADVANCED'},
+    {t:'line',  text:'  AI / LLMs    [████████████████████░░░░░░░░░░] 78%  GROWING'},
+    {t:'line',  text:'  Security     [███████████████████████░░░░░░░] 82%  ADVANCED'},
+    {t:'gap'},
+    {t:'bright',text:'  > All systems nominal. Ready to ship. 🚀'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  stack:[
+    {t:'prompt',text:'cat tech-stack.json'},
+    {t:'gap'},
+    {t:'cyan',  text:'  {'},
+    {t:'line',  text:'    "languages"  : ["JS","TS","Python","Java","C#","C++","PHP"],'},
+    {t:'line',  text:'    "frontend"   : ["React","Next.js","React Native","Tailwind"],'},
+    {t:'line',  text:'    "backend"    : ["Node.js","Express","REST","GraphQL"],'},
+    {t:'line',  text:'    "databases"  : ["MongoDB","MySQL","Firebase","Supabase","Redis"],'},
+    {t:'line',  text:'    "cloud"      : ["Vercel","GCP","Cloudflare","Heroku","Render"],'},
+    {t:'line',  text:'    "ai"         : ["OpenAI","Claude","LangChain","HuggingFace"],'},
+    {t:'line',  text:'    "devops"     : ["Docker","GitHub Actions","Nginx","Playwright"],'},
+    {t:'line',  text:'    "design"     : ["Figma","Framer","Blender","Canva"]'},
+    {t:'cyan',  text:'  }'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  git:[
+    {t:'prompt',text:'git log --oneline --graph'},
+    {t:'gap'},
+    {t:'bright',text:'  * a3f9c12  🚀 shipped: next-gen AI assistant v2.0'},
+    {t:'line',  text:'  * b71de08  ✨ feat: public REST API with rate limiting'},
+    {t:'line',  text:'  * c90fa33  🔒 fix: hardened auth verification layer'},
+    {t:'line',  text:'  * d4e21b1  🤖 build: LLM-powered chatbot + RAG pipeline'},
+    {t:'line',  text:'  * e82ca55  🌐 deploy: full-stack SaaS to production'},
+    {t:'line',  text:'  * f19ab44  🔌 feat: webhook system with retry logic'},
+    {t:'line',  text:'  * 007de21  ♻️  refactor: monolith → microservices'},
+    {t:'line',  text:'  * 88cc310  📦 open-sourced SDK — 200+ stars on launch'},
+    {t:'line',  text:'  * 3fa9901  🤖 discord bot serving 50k+ users'},
+    {t:'line',  text:'  * 12e0032  🌱 init: started from zero — still going'},
+    {t:'gap'},
+    {t:'dim',   text:'  [latest 10 of ∞ commits]'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  status:[
+    {t:'prompt',text:'systemctl status thenux.service'},
+    {t:'gap'},
+    {t:'bright',text:'  thenux.service — THENUX Developer Instance'},
+    {t:'dim',   text:'     Loaded: active (running) since forever'},
+    {t:'gap'},
+    {t:'cyan',  text:'  ─────────────────────────────────────────'},
+    {t:'line',  text:'  [ACTIVE]   Building next-gen AI products'},
+    {t:'line',  text:'  [ACTIVE]   Learning LLM fine-tuning & agents'},
+    {t:'line',  text:'  [ACTIVE]   Open to collabs & freelance'},
+    {t:'line',  text:'  [ACTIVE]   Shipping open-source tools'},
+    {t:'yellow',text:'  [BUSY]     DMs — reply in ~24h'},
+    {t:'red',   text:'  [CRITICAL] Coffee supply — NEEDS REFILL'},
+    {t:'cyan',  text:'  ─────────────────────────────────────────'},
+    {t:'gap'},
+    {t:'bright',text:'  ONLINE  ·  Sri Lanka 🇱🇰  ·  GMT+5:30'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  nmap:[
+    {t:'prompt',text:'nmap --vibe-check thenux.dev'},
+    {t:'gap'},
+    {t:'dim',   text:'  Starting Nmap 7.94 on thenux.dev...'},
+    {t:'gap'},
+    {t:'cyan',  text:'  PORT       STATE   SERVICE     VERSION'},
+    {t:'cyan',  text:'  ─────────────────────────────────────────'},
+    {t:'bright',text:'  3000/tcp   open    node.js     Express 4.x'},
+    {t:'bright',text:'  5173/tcp   open    vite-hmr    React 18'},
+    {t:'bright',text:'  27017/tcp  open    mongodb     Atlas Cloud'},
+    {t:'bright',text:'  443/tcp    open    https       Next.js App'},
+    {t:'bright',text:'  8080/tcp   open    api-server  REST v2'},
+    {t:'bright',text:'  6379/tcp   open    redis       Cache layer'},
+    {t:'gap'},
+    {t:'line',  text:'  Security rating  : HARDENED ✅'},
+    {t:'line',  text:'  Vulnerabilities  : 0 found'},
+    {t:'line',  text:'  Vibe check       : PASSED — immaculate ✨'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  projects:[
+    {t:'prompt',text:'ls -la ~/projects/'},
+    {t:'gap'},
+    {t:'cyan',  text:'  total ∞'},
+    {t:'line',  text:'  drwxr-xr-x  🤖  ai-assistant-v2/     [LLM + RAG pipeline]'},
+    {t:'line',  text:'  drwxr-xr-x  🔌  public-api/          [REST · 1k+ endpoints]'},
+    {t:'line',  text:'  drwxr-xr-x  🌐  saas-platform/       [Next.js · Supabase]'},
+    {t:'line',  text:'  drwxr-xr-x  🔒  auth-system/         [JWT · OAuth2 · MFA]'},
+    {t:'line',  text:'  drwxr-xr-x  🤖  discord-bot/         [50k+ active users]'},
+    {t:'line',  text:'  drwxr-xr-x  📦  open-source-sdk/     [★ 200+ stars]'},
+    {t:'line',  text:'  drwxr-xr-x  💻  thenuxdrop/          [this terminal!]'},
+    {t:'gap'},
+    {t:'bright',text:'  7 projects · More always in progress'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+  contact:[
+    {t:'prompt',text:'cat contact.txt'},
+    {t:'gap'},
+    {t:'cyan',  text:'  ┌──────────────────────────────────────┐'},
+    {t:'cyan',  text:'  │          REACH OUT TO THENUX         │'},
+    {t:'cyan',  text:'  ├──────────────────────────────────────┤'},
+    {t:'line',  text:'  │  GitHub   : github.com/thenuxofc    │'},
+    {t:'line',  text:'  │  Instagram: @thenux_ofc             │'},
+    {t:'line',  text:'  │  Email    : sup@thenuxofc.store     │'},
+    {t:'cyan',  text:'  ├──────────────────────────────────────┤'},
+    {t:'bright',text:'  │  Open to: Collabs · Freelance        │'},
+    {t:'bright',text:'  │           Open Source · AI Projects  │'},
+    {t:'cyan',  text:'  └──────────────────────────────────────┘'},
+    {t:'gap'},
+    {t:'prompt',text:''},
+  ],
+};
+function addLine(cls,text){
+  const d=document.createElement('div');
+  d.className='tline '+(cls==='line'?'':cls);
+  d.textContent=text;
+  out.appendChild(d);
+  out.parentElement.scrollTop=out.parentElement.scrollHeight;
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function typePrompt(text){
+  const d=document.createElement('div');
+  d.className='tline bright';
+  out.appendChild(d);
+  const prefix='thenux@matrix:~$ ';
+  const full=prefix+text;
+  for(let i=0;i<full.length;i++){
+    d.textContent=full.slice(0,i+1);
+    await sleep(text===''?0:35+Math.random()*25);
+    out.parentElement.scrollTop=out.parentElement.scrollHeight;
+  }
+}
+async function runScript(name){
+  if(typing)return;
+  typing=true;
+  cur.style.display='none';
+  const steps=scripts[name];
+  for(const step of steps){
+    if(!typing)break;
+    if(step.t==='prompt'){await typePrompt(step.text);await sleep(100);}
+    else if(step.t==='gap'){addLine('line','');await sleep(40);}
+    else{addLine(step.t,step.text);await sleep(22+Math.random()*15);}
+  }
+  cur.style.display='inline-block';
+  typing=false;
+}
+function clearTerm(){typing=false;out.innerHTML='';}
+runScript('whoami');
+
+// ═══════ SNAKE ═══════
+const sc=document.getElementById('snake-canvas');
+const ctx=sc.getContext('2d');
+const CELL=13,COLS=20,ROWS=20;
+let snake,dir,food,sRunning=false,sScore=0,sBest=parseInt(localStorage.getItem('snakeBest')||'0'),sLevel=1,sLoop;
+document.getElementById('snake-best').textContent=sBest;
+document.getElementById('sb-snake').textContent=sBest;
+function snakeDraw(){
+  ctx.fillStyle='#000';ctx.fillRect(0,0,sc.width,sc.height);
+  ctx.strokeStyle='#001a00';ctx.lineWidth=0.5;
+  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,sc.height);ctx.stroke();}
+  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(sc.width,y*CELL);ctx.stroke();}
+  ctx.fillStyle='#ff4444';ctx.shadowBlur=8;ctx.shadowColor='#ff4444';
+  ctx.fillRect(food.x*CELL+1,food.y*CELL+1,CELL-2,CELL-2);
+  ctx.shadowBlur=0;
+  snake.forEach((s,i)=>{
+    ctx.fillStyle=i===0?'#39ff14':'#00ff41';
+    if(i===0){ctx.shadowBlur=10;ctx.shadowColor='#39ff14';}
+    ctx.fillRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2);
+    ctx.shadowBlur=0;
+  });
+  if(!sRunning){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,sc.width,sc.height);
+    ctx.fillStyle='#00ff41';ctx.font='bold 14px Courier New';ctx.textAlign='center';
+    ctx.fillText(sScore>0?`GAME OVER — ${sScore} pts`:'CLICK START',sc.width/2,sc.height/2-10);
+    ctx.font='11px Courier New';ctx.fillStyle='#00882a';
+    ctx.fillText(sScore>0?'Click START to play again':'WASD or Arrow Keys',sc.width/2,sc.height/2+12);
+  }
+}
+function rndFood(){
+  let f;
+  do{f={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}
+  while(snake.some(s=>s.x===f.x&&s.y===f.y));
+  return f;
+}
+function snakeStart(){
+  snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  dir={x:1,y:0};food=rndFood();sScore=0;sLevel=1;sRunning=true;
+  document.getElementById('snake-score').textContent=0;
+  document.getElementById('snake-level').textContent=1;
+  document.getElementById('snake-btn').textContent='■ RUNNING...';
+  clearInterval(sLoop);
+  sLoop=setInterval(snakeTick,140);
+}
+function snakeTick(){
+  const head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+  if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||snake.some(s=>s.x===head.x&&s.y===head.y)){
+    sRunning=false;clearInterval(sLoop);
+    document.getElementById('snake-btn').textContent='▶ PLAY AGAIN';
+    if(sScore>sBest){sBest=sScore;localStorage.setItem('snakeBest',sBest);document.getElementById('snake-best').textContent=sBest;document.getElementById('sb-snake').textContent=sBest;}
+    snakeDraw();return;
+  }
+  snake.unshift(head);
+  if(head.x===food.x&&head.y===food.y){
+    sScore++;document.getElementById('snake-score').textContent=sScore;
+    sLevel=Math.floor(sScore/5)+1;document.getElementById('snake-level').textContent=sLevel;
+    clearInterval(sLoop);sLoop=setInterval(snakeTick,Math.max(60,140-sLevel*12));
+    food=rndFood();
+  }else{snake.pop();}
+  snakeDraw();
+}
+document.addEventListener('keydown',e=>{
+  if(!sRunning)return;
+  const k=e.key;
+  if((k==='ArrowUp'||k==='w')&&dir.y===0){dir={x:0,y:-1};e.preventDefault();}
+  else if((k==='ArrowDown'||k==='s')&&dir.y===0){dir={x:0,y:1};e.preventDefault();}
+  else if((k==='ArrowLeft'||k==='a')&&dir.x===0){dir={x:-1,y:0};e.preventDefault();}
+  else if((k==='ArrowRight'||k==='d')&&dir.x===0){dir={x:1,y:0};e.preventDefault();}
+});
+snakeDraw();
+
+// ═══════ RPS ═══════
+const rpsEmoji={rock:'✊',paper:'🖐',scissors:'✌️'};
+const rpsChoices=['rock','paper','scissors'];
+let rpsW=0,rpsL=0,rpsD=0;
+function rpsPlay(you){
+  const cpu=rpsChoices[Math.floor(Math.random()*3)];
+  document.getElementById('rps-you').textContent=rpsEmoji[you];
+  document.getElementById('rps-cpu').textContent=rpsEmoji[cpu];
+  const r=document.getElementById('rps-result');
+  r.className='rps-result';
+  if(you===cpu){rpsD++;r.textContent='DRAW!';r.classList.add('draw');}
+  else if((you==='rock'&&cpu==='scissors')||(you==='paper'&&cpu==='rock')||(you==='scissors'&&cpu==='paper')){
+    rpsW++;r.textContent='YOU WIN! 🎉';r.classList.add('win');
+  }else{rpsL++;r.textContent='YOU LOSE!';r.classList.add('lose');}
+  document.getElementById('rps-w').textContent=rpsW;
+  document.getElementById('rps-l').textContent=rpsL;
+  document.getElementById('rps-d').textContent=rpsD;
+  document.getElementById('sb-rps').textContent=rpsW;
+}
+function rpsReset(){rpsW=rpsL=rpsD=0;['rps-w','rps-l','rps-d'].forEach(id=>document.getElementById(id).textContent=0);document.getElementById('rps-you').textContent='❓';document.getElementById('rps-cpu').textContent='❓';document.getElementById('rps-result').textContent='Choose your weapon';document.getElementById('rps-result').className='rps-result';}
+
+// ═══════ MEMORY ═══════
+const memEmojis=['🚀','🤖','🔌','🔒','⚡','🌐','🎮','🧠'];
+let memCards=[],memFlipped=[],memMatched=0,memMoves=0,memStarted=false,memTimer,memSeconds=0,memLock=false;
+function memInit(){
+  clearInterval(memTimer);memStarted=false;memFlipped=[];memMatched=0;memMoves=0;memSeconds=0;memLock=false;
+  document.getElementById('mem-moves').textContent=0;
+  document.getElementById('mem-pairs').textContent=0;
+  document.getElementById('mem-time').textContent='0s';
+  document.getElementById('mem-status').textContent='Click any card to start!';
+  const arr=[...memEmojis,...memEmojis].sort(()=>Math.random()-.5);
+  const grid=document.getElementById('mem-grid');grid.innerHTML='';
+  memCards=arr.map((e,i)=>{
+    const c=document.createElement('div');c.className='mem-card';c.dataset.i=i;c.dataset.e=e;
+    c.innerHTML=`<span class="front">${e}</span><span class="back">?</span>`;
+    c.addEventListener('click',()=>memFlip(c));
+    grid.appendChild(c);return c;
+  });
+}
+function memFlip(c){
+  if(memLock||c.classList.contains('flipped')||c.classList.contains('matched'))return;
+  if(!memStarted){memStarted=true;memTimer=setInterval(()=>{memSeconds++;document.getElementById('mem-time').textContent=memSeconds+'s';},1000);}
+  c.classList.add('flipped');memFlipped.push(c);
+  if(memFlipped.length===2){
+    memMoves++;document.getElementById('mem-moves').textContent=memMoves;
+    memLock=true;
+    if(memFlipped[0].dataset.e===memFlipped[1].dataset.e){
+      memFlipped.forEach(x=>x.classList.add('matched'));
+      memMatched++;document.getElementById('mem-pairs').textContent=memMatched;
+      memFlipped=[];memLock=false;
+      if(memMatched===8){clearInterval(memTimer);document.getElementById('mem-status').innerHTML=`🎉 Done! ${memMoves} moves · ${memSeconds}s`;document.getElementById('sb-mem').textContent=memSeconds+'s';}
+    }else{
+      setTimeout(()=>{memFlipped.forEach(x=>x.classList.remove('flipped'));memFlipped=[];memLock=false;},900);
+    }
+  }
+}
+memInit();
+
+// ═══════ REFLEX ═══════
+let reflexState='idle',reflexTimeout,reflexStart,reflexBest=null,reflexHistory=[];
+const rt=document.getElementById('reflex-target');
+function reflexClick(){
+  if(reflexState==='idle'){
+    rt.className='reflex-target waiting';rt.textContent='GET READY...';
+    reflexState='waiting';
+    reflexTimeout=setTimeout(()=>{
+      rt.className='reflex-target ready';rt.textContent='CLICK NOW!';
+      reflexStart=Date.now();reflexState='ready';
+    },1000+Math.random()*3000);
+  }else if(reflexState==='waiting'){
+    clearTimeout(reflexTimeout);
+    rt.className='reflex-target early';rt.textContent='TOO EARLY! Click to retry';
+    reflexState='idle';
+  }else if(reflexState==='ready'){
+    const t=Date.now()-reflexStart;
+    reflexState='idle';
+    if(reflexBest===null||t<reflexBest){reflexBest=t;document.getElementById('reflex-best-disp').textContent=reflexBest+'ms';document.getElementById('sb-reflex').textContent=reflexBest+'ms';}
+    document.getElementById('reflex-last').textContent=t+'ms';
+    reflexHistory.unshift(t);if(reflexHistory.length>5)reflexHistory.pop();
+    const h=document.getElementById('reflex-history');h.innerHTML='';
+    reflexHistory.forEach((v,i)=>{const d=document.createElement('div');d.className='reflex-time';d.innerHTML=`#${i+1} <span>${v}ms</span>`;h.appendChild(d);});
+    rt.className='reflex-target waiting';
+    rt.textContent=t<200?`${t}ms ⚡ LIGHTNING!`:t<300?`${t}ms 🔥 FAST!`:t<500?`${t}ms ✅ GOOD`:t<800?`${t}ms 😐 OK`:`${t}ms 🐌 SLOW`;
+    setTimeout(()=>{rt.textContent='Click to try again';},1500);
+  }
+}
+function reflexReset(){reflexHistory=[];reflexBest=null;document.getElementById('reflex-history').innerHTML='';document.getElementById('reflex-last').textContent='—';document.getElementById('reflex-best-disp').textContent='—';document.getElementById('sb-reflex').textContent='—';rt.className='reflex-target waiting';rt.textContent='CLICK START';}
+</script>
+</body>
+</html>
